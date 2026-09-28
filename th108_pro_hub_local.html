@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPOMAKER TH108 PRO LOCAL HUB</title>
+<style>
+  :root {
+    --bg: #14161a; --panel: #1e2126; --panel-2: #262a31;
+    --text: #e6e9ef; --text-dim: #9aa1ad;
+    --accent: #3ea6ff; --accent-2: #2d7d46; --border: #2e333b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+  .app { max-width: 760px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+  h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+  h1 small { color: var(--text-dim); font-weight: normal; font-size: 0.85rem; margin-left: 0.5rem; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem; margin-bottom: 1rem;
+  }
+  .panel-title {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim); margin-bottom: 0.6rem;
+  }
+  .row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .row + .row { margin-top: 0.75rem; }
+  label.lbl { width: 100px; color: var(--text-dim); font-size: 0.9rem; }
+  button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 0.45rem 0.8rem; font-size: 0.9rem; cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+    outline: none;
+  }
+  button:hover { background: #30353e; }
+  button:focus { outline: none; }
+  button:focus-visible { outline: 2px solid var(--accent); }
+  button.primary { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
+  button.primary:hover { background: #3a9e5a; }
+  button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .effects-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.4rem;
+  }
+  .effects-grid button { padding: 0.55rem 0.5rem; font-size: 0.82rem; text-align: center; line-height: 1.2; }
+  .colors-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .color-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid var(--border); cursor: pointer; padding: 0;
+    transition: transform 0.1s, border-color 0.1s;
+  }
+  .color-btn:hover { transform: scale(1.08); border-color: #555; }
+  .color-btn.active { border-color: #fff; transform: scale(1.1); }
+  input[type="range"] { flex: 1; min-width: 140px; accent-color: var(--accent); }
+  input[type="color"] {
+    width: 48px; height: 36px; border: 1px solid var(--border); border-radius: 6px;
+    background: transparent; cursor: pointer; padding: 0;
+  }
+  .val { font-variant-numeric: tabular-nums; min-width: 2rem; display: inline-block; }
+  .hint { color: var(--text-dim); font-size: 0.78rem; margin-top: 0.4rem; }
+  #log {
+    background: #0d0f12; border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.6rem; height: 200px; overflow-y: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px;
+    white-space: pre-wrap; word-break: break-all; color: #b9c2cf;
+  }
+  .status { font-size: 0.9rem; color: var(--text-dim); }
+  .status.ok { color: #6ee7a7; }
+  .status.err { color: #ff8181; }
+  .status.warn { color: #ffc66d; }
+  .toggle-group { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .toggle-group button { border: none; border-radius: 0; background: transparent; padding: 0.45rem 0.9rem; }
+  .toggle-group button + button { border-left: 1px solid var(--border); }
+  .toggle-group button.active { background: var(--accent); }
+  .checkbox-row { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; }
+  .checkbox-row input { accent-color: var(--accent); }
+  .hotkeys {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0.45rem 1.2rem;
+  }
+  .hotkey { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+  .hotkey .kbd {
+    display: inline-block; padding: 0.15rem 0.55rem;
+    background: var(--panel-2); border: 1px solid var(--border); border-bottom-width: 2px;
+    border-radius: 5px; font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.78rem; color: #d8dee8; white-space: nowrap;
+  }
+  .hotkey .plus { color: var(--text-dim); font-size: 0.8rem; }
+  .hotkey .desc { color: var(--text-dim); margin-left: 0.3rem; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>EPOMAKER TH108 PRO <small>local hub</small></h1>
+
+  <div class="panel">
+    <div class="row">
+      <button id="connect" class="primary">Connect</button>
+      <button id="diag" disabled>Диагностика</button>
+      <span id="status" class="status">Не подключено</span>
+    </div>
+    <div class="hint" id="linkHint"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Цвет</div>
+    <div class="colors-row" id="colorPresets"></div>
+    <div class="row" style="margin-top: 0.7rem;">
+      <label class="lbl">Свой цвет:</label>
+      <input type="color" id="color" value="#ff0000">
+      <span id="colorHex" class="val" style="font-family: monospace;">#ff0000</span>
+      <label class="checkbox-row" style="margin-left: 1rem;">
+        <input type="checkbox" id="vibrant">
+        <span>Vibrant (радуга поверх эффекта)</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Эффект</div>
+    <div class="effects-grid" id="effects"></div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <label class="lbl">Яркость:</label>
+      <input type="range" id="brightness" min="0" max="5" value="5">
+      <span class="val" id="brightnessVal">5</span>
+    </div>
+    <div class="row">
+      <label class="lbl">Скорость:</label>
+      <input type="range" id="speed" min="1" max="5" value="3">
+      <span class="val" id="speedVal">3</span>
+    </div>
+    <div class="row">
+      <label class="lbl">Направление:</label>
+      <div class="toggle-group" id="directionGroup">
+        <button data-value="0">Прямое</button>
+        <button data-value="1">Обратное</button>
+      </div>
+      <span class="hint">(только для эффектов с направлением)</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <button id="apply" class="primary">Применить</button>
+      <label class="checkbox-row" style="margin-left: 0.5rem;">
+        <input type="checkbox" id="autoApply">
+        <span>Авто-применение (debounce 200 мс)</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Горячие клавиши (Fn-слой)</div>
+    <div class="hotkeys">
+      <div class="hotkey"><span class="kbd">Fn</span><span class="plus">+</span><span class="kbd">Insert</span><span class="desc">сменить эффект основной подсветки</span></div>
+      <div class="hotkey"><span class="kbd">Fn</span><span class="plus">+</span><span class="kbd">Delete</span><span class="desc">сменить цвет основной подсветки</span></div>
+      <div class="hotkey"><span class="kbd">Fn</span><span class="plus">+</span><span class="kbd">↑</span><span class="desc">яркость основной +</span></div>
+      <div class="hotkey"><span class="kbd">Fn</span><span class="plus">+</span><span class="kbd">↓</span><span class="desc">яркость основной −</span></div>
+      <div class="hotkey"><span class="kbd">Fn</span><span class="plus">+</span><span class="kbd">→</span><span class="desc">скорость эффекта +</span></div>
+      <div class="hotkey"><span class="kbd">Fn</span><span class="plus">+</span><span class="kbd">←</span><span class="desc">скорость эффекта −</span></div>
+      <div class="hotkey"><span class="kbd">Fn</span><span class="plus">+</span><span class="kbd">Home</span><span class="desc">сменить эффект боковой подсветки</span></div>
+      <div class="hotkey"><span class="kbd">Fn</span><span class="plus">+</span><span class="kbd">End</span><span class="desc">подсветка логотипа вкл/выкл</span></div>
+    </div>
+    <div class="hint">
+      Боковая подсветка и подсветка у дисплея управляются только с клавиатуры
+      (Fn-слой). Через WebHID они недосягаемы — как и в официальном Epomaker Hub.
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Лог</div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  const VID = 0x05AC;
+  const PID = 0x024F;
+
+  const UP_WIRED  = 0xFF68;   // проводная huafenda
+  const UP_DONGLE = 0xFF60;   // 2.4G-донгл (Raw HID, huafenda поверх)
+
+  const state = {
+    device: null,
+    linkMode: null,          // 'wired' | '2.4g'
+    keyboardOnline: true,
+    outReportId: 0,          // reportId для OUTPUT
+    outReportSize: 64,       // байт в OUTPUT-отчёте
+    effect: 0x01,
+    r: 0xff, g: 0x00, b: 0x00,
+    brightness: 5, speed: 3, direction: 0,
+    vibrant: false, autoApply: false, applyTimer: null,
+    lastSentHex: null,
+    pushListener: null,
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const connectBtn = $("connect"), diagBtn = $("diag"), statusEl = $("status"), applyBtn = $("apply");
+  const autoApplyCb = $("autoApply"), vibrantCb = $("vibrant"), logEl = $("log");
+  const colorInput = $("color"), colorHexEl = $("colorHex"), colorPresetsEl = $("colorPresets");
+  const effectsEl = $("effects"), brightnessInput = $("brightness"), brightnessVal = $("brightnessVal");
+  const speedInput = $("speed"), speedVal = $("speedVal"), directionGroup = $("directionGroup");
+  const linkHintEl = $("linkHint");
+
+  const EFFECTS = [
+    { id: 0x01, name: "Static" }, { id: 0x02, name: "Single Light Up" },
+    { id: 0x03, name: "Single Light Off" }, { id: 0x04, name: "Starlight" },
+    { id: 0x05, name: "Snowfall" }, { id: 0x06, name: "Flowerbloom" },
+    { id: 0x07, name: "Dynamic Breathing" }, { id: 0x08, name: "Spectrum Cycle" },
+    { id: 0x09, name: "Colorful Spring" }, { id: 0x0A, name: "Colorful Cross" },
+    { id: 0x0B, name: "Waveflow" }, { id: 0x0C, name: "Mountain Path" },
+    { id: 0x0D, name: "One Touch" }, { id: 0x0E, name: "One Stone Two Birds" },
+    { id: 0x0F, name: "Ripple" }, { id: 0x10, name: "Stream L→R" },
+    { id: 0x11, name: "Layered Mountains" }, { id: 0x12, name: "Gentle Wind" },
+    { id: 0x13, name: "Shuttle" },
+  ];
+
+  const COLOR_PRESETS = [
+    { name: "Красный",   hex: "#ff0000" }, { name: "Оранжевый", hex: "#ff8000" },
+    { name: "Жёлтый",    hex: "#ffff00" }, { name: "Зелёный",   hex: "#00ff00" },
+    { name: "Бирюзовый", hex: "#00ffff" }, { name: "Синий",     hex: "#0000ff" },
+    { name: "Фиолетовый",hex: "#8000ff" }, { name: "Розовый",   hex: "#ff00ff" },
+    { name: "Белый",     hex: "#ffffff" }, { name: "Выкл",      hex: "#000000" },
+  ];
+
+  function log(msg) {
+    const t = new Date().toLocaleTimeString();
+    logEl.textContent += `[${t}] ${msg}\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(text, kind) {
+    statusEl.textContent = text;
+    statusEl.className = "status" + (kind ? " " + kind : "");
+  }
+
+  function setLinkHint() {
+    if (!state.device) { linkHintEl.textContent = ""; return; }
+    const sizeStr = `OUT ${state.outReportSize}B (rid=${state.outReportId})`;
+    if (state.linkMode === "wired") {
+      linkHintEl.textContent = `Провод, usagePage 0xFF68, ${sizeStr}`;
+    } else if (state.linkMode === "2.4g") {
+      linkHintEl.textContent = state.keyboardOnline
+        ? `2.4G-донгл, usagePage 0xFF60, ${sizeStr}. Клавиатура на связи.`
+        : `Донгл 0xFF60, ${sizeStr}, но клавиатура спит / потеряла связь. Нажмите клавишу на клавиатуре.`;
+    }
+  }
+
+  // ---------- Интерфейс и дескриптор ----------
+
+  function pickInterface(d) {
+    if (!d || d.vendorId !== VID || d.productId !== PID) return null;
+    const has = (up) =>
+      (d.collections ?? []).some(c => c.usagePage === up && c.usage === 0x61);
+    if (has(UP_WIRED))  return { up: UP_WIRED,  linkMode: "wired" };
+    if (has(UP_DONGLE)) return { up: UP_DONGLE, linkMode: "2.4g"  };
+    return null;
+  }
+
+  function findTargetDevice(devices) {
+    const scored = [];
+    for (const d of devices) {
+      const p = pickInterface(d);
+      if (!p) continue;
+      scored.push({ d, score: p.linkMode === "wired" ? 2 : 1, up: p.up, linkMode: p.linkMode });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0] ?? null;
+  }
+
+  // Возвращает {reportId, bytes, items} для OUTPUT-отчёта выбранного интерфейса
+  function readOutputReportInfo(device, usagePage) {
+    const col = (device.collections ?? []).find(c =>
+      c.usagePage === usagePage && c.usage === 0x61
+    );
+    if (!col) return null;
+    const rpt = (col.outputReports ?? [])[0];
+    if (!rpt) return null;
+    let bits = 0;
+    const items = (rpt.items ?? []).map(i => {
+      const rc = i.reportCount ?? 0;
+      const rs = i.reportSize ?? 0;
+      bits += rc * rs;
+      return { rc, rs };
+    });
+    const bytes = bits > 0 ? Math.ceil(bits / 8) : null;
+    return { reportId: rpt.reportId ?? 0, bytes, items, raw: rpt };
+  }
+
+  function readInputReportSizes(device, usagePage) {
+    const col = (device.collections ?? []).find(c =>
+      c.usagePage === usagePage && c.usage === 0x61
+    );
+    if (!col) return [];
+    return (col.inputReports ?? []).map(rpt => {
+      let bits = 0;
+      for (const i of (rpt.items ?? [])) bits += (i.reportCount ?? 0) * (i.reportSize ?? 0);
+      return { rid: rpt.reportId ?? 0, bytes: bits > 0 ? Math.ceil(bits / 8) : null };
+    });
+  }
+
+  // ---------- Push-листенер ----------
+
+  function attachPushListener(device) {
+    detachPushListener();
+    const onPush = (e) => {
+      const b = new Uint8Array(e.data.buffer);
+      // События приходят на разные reportId, поэтому не ограничиваемся rid=0
+      if (b[0] === 0xA6 && b[1] === 0xFF && b[2] === 0x01) {
+        if (!state.keyboardOnline) log("⌨️ Клавиатура проснулась (A6 FF 01)");
+        state.keyboardOnline = true;
+        setLinkHint();
+      } else if (b[0] === 0x55 && b[1] === 0xFC && b[2] === 0x05) {
+        if (state.keyboardOnline) log("⌨️ Клавиатура потеряла связь с донглом (55 FC 05)");
+        state.keyboardOnline = false;
+        setLinkHint();
+      } else if (b[0] === 0x55 && b[1] === 0xFC && b[2] === 0x06) {
+        if (state.keyboardOnline) log("⌨️ Клавиатура ушла в сон (55 FC 06)");
+        state.keyboardOnline = false;
+        setLinkHint();
+      }
+    };
+    device.addEventListener("inputreport", onPush);
+    state.pushListener = { device, onPush };
+  }
+
+  function detachPushListener() {
+    if (!state.pushListener) return;
+    const { device, onPush } = state.pushListener;
+    try { device.removeEventListener("inputreport", onPush); } catch (_) {}
+    state.pushListener = null;
+  }
+
+  // ---------- Подключение ----------
+
+  async function openAndAdopt(found) {
+    const target = found.d;
+    state.device = target;
+    state.linkMode = found.linkMode;
+    state.keyboardOnline = true;
+    state.lastSentHex = null;
+
+    if (!target.opened) await target.open();
+    attachPushListener(target);
+
+    // Читаем дескриптор OUTPUT-отчёта выбранного интерфейса
+    const info = readOutputReportInfo(target, found.up);
+    const inputs = readInputReportSizes(target, found.up);
+
+    const upHex = "0x" + found.up.toString(16).toUpperCase();
+    if (info) {
+      state.outReportId = info.reportId;
+      // Приоритет: реально объявленный размер. Fallback — 64 для проводного, 32 для донгла.
+      if (info.bytes && info.bytes > 0) {
+        state.outReportSize = info.bytes;
+      } else {
+        state.outReportSize = found.linkMode === "wired" ? 64 : 32;
+      }
+      log(`Дескриптор ${upHex}: outputReport reportId=${info.reportId}, ` +
+          `размер=${info.bytes ?? "?"} байт` +
+          (info.items?.length
+            ? `, items=[${info.items.map(i => `${i.rc}×${i.rs}бит`).join(", ")}]`
+            : ``));
+    } else {
+      state.outReportId = 0;
+      state.outReportSize = found.linkMode === "wired" ? 64 : 32;
+      log(`Дескриптор ${upHex}: outputReport не объявлен — используем ${state.outReportSize}B, rid=0`);
+    }
+    if (inputs.length) {
+      log(`Дескриптор ${upHex}: inputReports=[${inputs.map(i => `rid=${i.rid}:${i.bytes ?? "?"}B`).join(", ")}]`);
+    }
+
+    const label = found.linkMode === "wired" ? "провод" : "2.4G";
+    setStatus(`Подключено: ${target.productName}`, "ok");
+    setLinkHint();
+    diagBtn.disabled = false;
+    log(`Подключено к ${target.productName} — интерфейс ${upHex} (${label})`);
+  }
+
+  async function connect() {
+    try {
+      const all = await navigator.hid.requestDevice({
+        filters: [{ vendorId: VID, productId: PID }]
+      });
+      if (!all.length) { log("Устройство не выбрано."); return; }
+      const found = findTargetDevice(all);
+      if (!found) {
+        log("Не найден ни 0xFF68/0x61 (провод), ни 0xFF60/0x61 (донгл).");
+        setStatus("Интерфейс не найден", "err");
+        return;
+      }
+      await openAndAdopt(found);
+    } catch (err) {
+      setStatus("Ошибка подключения", "err");
+      log(`Ошибка: ${err.message}`);
+    }
+  }
+
+  // ---------- Пакет и отправка ----------
+
+  function buildPacket(size) {
+    const p = new Uint8Array(size);
+    p[0] = 0xAA; p[1] = 0x23; p[2] = 0x10;
+    p[3] = 0x00; p[4] = 0x00; p[5] = 0x00; p[6] = 0x01; p[7] = 0x00;
+    p[8] = state.effect;
+    p[9] = state.r; p[10] = state.g; p[11] = state.b;
+    p[12] = 0xFF;
+    p[13] = 0x00; p[14] = 0x00; p[15] = 0x00;
+    p[16] = state.vibrant ? 0x01 : 0x00;
+    p[17] = state.brightness;
+    p[18] = state.speed;
+    p[19] = state.direction;
+    p[20] = 0x00; p[21] = 0x00;
+    if (size > 22) p[22] = 0xAA;
+    if (size > 23) p[23] = 0x55;
+    return p;
+  }
+
+  async function sendPacket(pkt) {
+    await state.device.sendReport(state.outReportId, pkt);
+  }
+
+  async function apply() {
+    if (!state.device) { log("Нет подключения."); return; }
+    if (state.linkMode === "2.4g" && !state.keyboardOnline) {
+      log("Клавиатура не на связи (спит или потеряла донгл). Команда пропущена.");
+      return;
+    }
+
+    const primary = state.outReportSize;
+    const rid = state.outReportId;
+    const sizeTry = primary === 64 ? [64, 32] : [primary, 64, 32].filter((v, i, a) => a.indexOf(v) === i);
+
+    const hashOf = (sz) => Array.from(buildPacket(sz)).map(b => b.toString(16).padStart(2, "0")).join("");
+    if (hashOf(primary) === state.lastSentHex) return;
+
+    let lastErr = null;
+    for (const sz of sizeTry) {
+      const pkt = buildPacket(sz);
+      try {
+        await sendPacket(pkt);
+        if (sz !== primary) {
+          log(`sendReport OK после fallback: размер=${sz}B (было ${primary}B) — запоминаю.`);
+          state.outReportSize = sz;
+          setLinkHint();
+        }
+        state.lastSentHex = hashOf(sz);
+        const shortHex = Array.from(pkt.slice(0, 24)).map(b => b.toString(16).padStart(2, "0")).join(" ");
+        log(`Отправлено (rid=${rid}, size=${sz}): ${shortHex}`);
+        return;
+      } catch (err) {
+        lastErr = err;
+        log(`sendReport(rid=${rid}, size=${sz}) → ${err.message}`);
+      }
+    }
+    log(`Не удалось отправить: ${lastErr?.message ?? "неизвестно"}`);
+  }
+
+  function scheduleApply() {
+    if (!state.autoApply) return;
+    if (state.applyTimer) clearTimeout(state.applyTimer);
+    state.applyTimer = setTimeout(() => { state.applyTimer = null; apply(); }, 200);
+  }
+
+  // ---------- Диагностика ----------
+
+  async function runDiagnostics() {
+    if (!state.device) { log("Диагностика: нет подключения."); return; }
+    const dev = state.device;
+    log("── Диагностика ──");
+
+    // 1) Сырой дамп всех интерфейсов
+    try {
+      const all = await navigator.hid.getDevices();
+      for (const d of all) {
+        if (d.vendorId !== VID || d.productId !== PID) continue;
+        log(`Интерфейс VID=0x${d.vendorId.toString(16)} PID=0x${d.productId.toString(16)} opened=${d.opened}`);
+        for (const c of d.collections ?? []) {
+          const fmtR = (list) => (list ?? []).map(r => {
+            let bits = 0;
+            for (const i of (r.items ?? [])) bits += (i.reportCount ?? 0) * (i.reportSize ?? 0);
+            return `rid=${r.reportId ?? 0}:${bits > 0 ? Math.ceil(bits/8) : "?"}B`;
+          }).join(", ") || "—";
+          log(`  up=0x${(c.usagePage ?? 0).toString(16)} u=0x${(c.usage ?? 0).toString(16)} ` +
+              `out[${fmtR(c.outputReports)}] in[${fmtR(c.inputReports)}] feat[${fmtR(c.featureReports)}]`);
+        }
+      }
+    } catch (e) { log(`getDevices ошибка: ${e.message}`); }
+
+    // 2) Проверка COMM_START 0x01
+    const inbox = [];
+    const onIn = e => inbox.push({ rid: e.reportId, data: new Uint8Array(e.data.buffer) });
+    dev.addEventListener("inputreport", onIn);
+
+    const hex = u => [...u].map(b => b.toString(16).padStart(2, "0")).join(" ");
+    const tryCmd = async (label, cmd, size) => {
+      inbox.length = 0;
+      const p = buildPacket(size);
+      p[1] = cmd;
+      p[2] = 56;
+      try {
+        await sendPacket(p);
+        await new Promise(r => setTimeout(r, 250));
+        if (!inbox.length) log(`${label} [rid=${state.outReportId}, size=${size}] → нет ответа`);
+        else for (const m of inbox) log(`→ ${label} rid=${m.rid}: ${hex(m.data.slice(0, 16))}`);
+      } catch (e) {
+        log(`${label} [rid=${state.outReportId}, size=${size}] → ошибка: ${e.message}`);
+      }
+    };
+
+    for (const sz of [state.outReportSize, sz = 32, 64].filter((v,i,a)=>a.indexOf(v)===i)) {
+      await tryCmd(`COMM_START 0x01 @${sz}B`, 0x01, sz);
+    }
+    dev.removeEventListener("inputreport", onIn);
+    log("── Диагностика завершена ──");
+  }
+
+  // ---------- UI ----------
+
+  function buildColorPresets() {
+    COLOR_PRESETS.forEach(p => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "color-btn";
+      btn.style.background = p.hex;
+      btn.title = p.name;
+      btn.dataset.hex = p.hex;
+      btn.addEventListener("click", (e) => {
+        e.currentTarget.blur();
+        setColor(p.hex, true);
+        scheduleApply();
+      });
+      colorPresetsEl.appendChild(btn);
+    });
+  }
+
+  function buildEffects() {
+    EFFECTS.forEach(e => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = e.name;
+      btn.dataset.id = e.id;
+      btn.title = `0x${e.id.toString(16).padStart(2, "0")}`;
+      btn.addEventListener("click", (ev) => {
+        ev.currentTarget.blur();
+        state.effect = e.id;
+        updateEffectButtons();
+        scheduleApply();
+      });
+      effectsEl.appendChild(btn);
+    });
+    updateEffectButtons();
+  }
+
+  function updateEffectButtons() {
+    [...effectsEl.children].forEach(btn => {
+      btn.classList.toggle("active", parseInt(btn.dataset.id, 10) === state.effect);
+    });
+  }
+
+  function updateColorPresetsActive() {
+    const cur = colorInput.value.toLowerCase();
+    [...colorPresetsEl.children].forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.hex.toLowerCase() === cur);
+    });
+  }
+
+  function updateDirectionButtons() {
+    [...directionGroup.children].forEach(btn => {
+      btn.classList.toggle("active", parseInt(btn.dataset.value, 10) === state.direction);
+    });
+  }
+
+  function setColor(hex, updatePicker) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    state.r = r; state.g = g; state.b = b;
+    if (updatePicker) colorInput.value = hex;
+    colorHexEl.textContent = hex.toLowerCase();
+    updateColorPresetsActive();
+  }
+
+  function init() {
+    buildColorPresets();
+    buildEffects();
+    updateColorPresetsActive();
+    updateDirectionButtons();
+    setColor(colorInput.value, false);
+
+    connectBtn.type = "button";
+    applyBtn.type = "button";
+    diagBtn.type = "button";
+
+    connectBtn.addEventListener("click", (e) => { e.currentTarget.blur(); connect(); });
+    applyBtn.addEventListener("click", (e) => { e.currentTarget.blur(); apply(); });
+    diagBtn.addEventListener("click", (e) => { e.currentTarget.blur(); runDiagnostics(); });
+
+    colorInput.addEventListener("input", () => { setColor(colorInput.value, false); scheduleApply(); });
+    vibrantCb.addEventListener("change", () => { state.vibrant = vibrantCb.checked; scheduleApply(); });
+    autoApplyCb.addEventListener("change", () => { state.autoApply = autoApplyCb.checked; });
+
+    brightnessInput.addEventListener("input", () => {
+      state.brightness = parseInt(brightnessInput.value, 10);
+      brightnessVal.textContent = state.brightness;
+      scheduleApply();
+    });
+
+    speedInput.addEventListener("input", () => {
+      state.speed = parseInt(speedInput.value, 10);
+      speedVal.textContent = state.speed;
+      scheduleApply();
+    });
+
+    [...directionGroup.children].forEach(btn => {
+      btn.type = "button";
+      btn.addEventListener("click", (e) => {
+        e.currentTarget.blur();
+        state.direction = parseInt(btn.dataset.value, 10);
+        updateDirectionButtons();
+        scheduleApply();
+      });
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space" && document.activeElement?.tagName === "BUTTON") {
+        e.preventDefault();
+        document.activeElement.blur();
+      }
+    });
+
+    (async () => {
+      try {
+        const all = await navigator.hid.getDevices();
+        const found = findTargetDevice(all);
+        if (found) await openAndAdopt(found);
+        else log("Автоподключение: ни 0xFF68/0x61, ни 0xFF60/0x61 не найдены. Нажми Connect.");
+      } catch (e) { /* ignore */ }
+    })();
+
+    log("Готово. Нажми Connect и выбери клавиатуру (или 2.4G-донгл).");
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>
