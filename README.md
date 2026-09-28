@@ -145,4 +145,4 @@ owners. This project is not affiliated with them.
 
 ## License
 
-[MIT](LICENSE) © [Your Name or Handle]
+[MIT](LICENSE) © HoDGoD
